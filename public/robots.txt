@@ -1,0 +1,9 @@
+# robots.txt for mbc20.xyz
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://mbc20.xyz/sitemap.xml
+
+# Crawl-delay (optional, be nice to crawlers)
+Crawl-delay: 1

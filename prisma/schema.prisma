@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./mbc20.db"
+}
+
+model Token {
+  tick        String   @id
+  maxSupply   BigInt   @map("max_supply")
+  mintLimit   BigInt   @map("mint_limit")
+  deployer    String
+  deployPost  String   @map("deploy_post")
+  createdAt   DateTime @map("created_at")
+  
+  operations  Operation[]
+  balances    Balance[]
+
+  @@map("tokens")
+}
+
+model Operation {
+  id        Int      @id @default(autoincrement())
+  op        String   // deploy, mint, transfer
+  tick      String
+  agent     String
+  amount    BigInt?
+  toAgent   String?  @map("to_agent")
+  postId    String   @map("post_id")
+  postUrl   String?  @map("post_url")
+  opIndex   Int      @default(0) @map("op_index")  // Index within post for multiple same-type ops
+  createdAt DateTime @map("created_at")
+
+  token     Token    @relation(fields: [tick], references: [tick])
+
+  @@unique([postId, tick, op, opIndex])
+  @@index([tick])
+  @@index([agent])
+  @@index([postId])
+  @@index([createdAt(sort: Desc)])
+  @@map("operations")
+}
+
+model Balance {
+  agent  String
+  tick   String
+  amount BigInt @default(0)
+
+  token  Token  @relation(fields: [tick], references: [tick])
+
+  @@id([agent, tick])
+  @@index([tick, amount(sort: Desc)])
+  @@map("balances")
+}
+
+model IndexerState {
+  key   String @id
+  value String
+
+  @@map("indexer_state")
+}
+
+model WalletLink {
+  id        Int      @id @default(autoincrement())
+  agent     String
+  wallet    String
+  postId    String?  @map("post_id")  // Optional - null for Twitter OAuth links
+  source    String   @default("moltbook")  // "moltbook" or "twitter"
+  createdAt DateTime @map("created_at")
+
+  @@unique([agent, wallet])
+  @@index([wallet])
+  @@index([agent])
+  @@map("wallet_links")
+}
+
+model TwitterAgentLink {
+  id             Int      @id @default(autoincrement())
+  twitterUsername String  @unique @map("twitter_username")
+  agentName      String   @map("agent_name")
+  apiKey         String?  @map("api_key")
+  
+  @@map("twitter_agent_links")
+}
+
+model ClaimNonce {
+  wallet String @id
+  nonce  Int    @default(0)
+
+  @@map("claim_nonces")
+}

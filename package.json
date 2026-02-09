@@ -1,0 +1,40 @@
+{
+  "name": "mbc20-indexer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "index": "tsx src/indexer/run.ts",
+    "index:backfill": "tsx src/indexer/backfill.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0",
+    "@tanstack/react-query": "^5.90.20",
+    "autoprefixer": "^10.0.0",
+    "connectkit": "^1.9.1",
+    "ethers": "^6.16.0",
+    "next": "^14.0.0",
+    "next-auth": "^4.24.13",
+    "postcss": "^8.0.0",
+    "prisma": "^5.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "recharts": "^3.7.0",
+    "tailwindcss": "^3.0.0",
+    "typescript": "^5.0.0",
+    "viem": "^2.45.1",
+    "wagmi": "^2.19.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "tsx": "^4.21.0"
+  }
+}
