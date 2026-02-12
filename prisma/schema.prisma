@@ -8,31 +8,30 @@ datasource db {
 }
 
 model Token {
-  tick        String   @id
-  maxSupply   BigInt   @map("max_supply")
-  mintLimit   BigInt   @map("mint_limit")
-  deployer    String
-  deployPost  String   @map("deploy_post")
-  createdAt   DateTime @map("created_at")
-  
-  operations  Operation[]
-  balances    Balance[]
+  tick       String      @id
+  maxSupply  BigInt      @map("max_supply")
+  mintLimit  BigInt      @map("mint_limit")
+  deployer   String
+  deployPost String      @map("deploy_post")
+  createdAt  DateTime    @map("created_at")
+  balances   Balance[]
+  operations Operation[]
 
   @@map("tokens")
 }
 
 model Operation {
   id        Int      @id @default(autoincrement())
-  op        String   // deploy, mint, transfer
+  op        String
   tick      String
   agent     String
   amount    BigInt?
   toAgent   String?  @map("to_agent")
   postId    String   @map("post_id")
   postUrl   String?  @map("post_url")
-  opIndex   Int      @default(0) @map("op_index")  // Index within post for multiple same-type ops
+  opIndex   Int      @default(0) @map("op_index")
+  address   String?  @map("address")
   createdAt DateTime @map("created_at")
-
   token     Token    @relation(fields: [tick], references: [tick])
 
   @@unique([postId, tick, op, opIndex])
@@ -47,7 +46,6 @@ model Balance {
   agent  String
   tick   String
   amount BigInt @default(0)
-
   token  Token  @relation(fields: [tick], references: [tick])
 
   @@id([agent, tick])
@@ -66,8 +64,8 @@ model WalletLink {
   id        Int      @id @default(autoincrement())
   agent     String
   wallet    String
-  postId    String?  @map("post_id")  // Optional - null for Twitter OAuth links
-  source    String   @default("moltbook")  // "moltbook" or "twitter"
+  postId    String?  @map("post_id")
+  source    String   @default("moltbook")
   createdAt DateTime @map("created_at")
 
   @@unique([agent, wallet])
@@ -77,11 +75,11 @@ model WalletLink {
 }
 
 model TwitterAgentLink {
-  id             Int      @id @default(autoincrement())
+  id              Int     @id @default(autoincrement())
   twitterUsername String  @unique @map("twitter_username")
-  agentName      String   @map("agent_name")
-  apiKey         String?  @map("api_key")
-  
+  agentName       String  @map("agent_name")
+  apiKey          String? @map("api_key")
+
   @@map("twitter_agent_links")
 }
 
@@ -90,4 +88,38 @@ model ClaimNonce {
   nonce  Int    @default(0)
 
   @@map("claim_nonces")
+}
+
+model MintViolation {
+  id              Int    @id @default(autoincrement())
+  agent           String
+  tick            String
+  operationId     Int    @map("operation_id")
+  prevOperationId Int    @map("prev_operation_id")
+  gapMs           Int    @map("gap_ms")
+  excessAmount    Int    @map("excess_amount")
+  postId          String @map("post_id")
+  prevPostId      String @map("prev_post_id")
+  createdAt       BigInt @map("created_at")
+  prevCreatedAt   BigInt @map("prev_created_at")
+  flaggedAt       String @default("now") @map("flagged_at")
+
+  @@index([agent])
+  @@index([tick])
+  @@index([agent, tick])
+  @@map("mint_violations")
+}
+
+model ViolationSummary {
+  agent             String
+  tick              String
+  totalMints        Int    @map("total_mints")
+  legitimateMints   Int    @map("legitimate_mints")
+  excessMints       Int    @map("excess_mints")
+  excessAmount      Int    @map("excess_amount")
+  currentBalance    Int    @map("current_balance")
+  legitimateBalance Int    @map("legitimate_balance")
+
+  @@id([agent, tick])
+  @@map("violation_summary")
 }

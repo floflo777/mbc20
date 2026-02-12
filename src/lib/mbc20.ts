@@ -23,13 +23,21 @@ export interface TransferOp {
   to: string
 }
 
+export interface BurnOp {
+  p: 'mbc-20'
+  op: 'burn'
+  tick: string
+  amt: string
+  address?: string
+}
+
 export interface LinkOp {
   p: 'mbc-20'
   op: 'link'
   wallet: string
 }
 
-export type Mbc20Op = DeployOp | MintOp | TransferOp | LinkOp
+export type Mbc20Op = DeployOp | MintOp | TransferOp | BurnOp | LinkOp
 
 export function parseMbc20(content: string): Mbc20Op | null {
   const ops = parseMbc20All(content)
@@ -88,6 +96,20 @@ export function parseMbc20All(content: string): Mbc20Op[] {
           amt: parsed.amt,
           to: parsed.to,
         })
+      }
+
+      if (op === 'burn') {
+        if (!parsed.tick || !parsed.amt) continue
+        const burnOp: any = {
+          p: 'mbc-20',
+          op: 'burn',
+          tick,
+          amt: parsed.amt,
+        }
+        if (parsed.address && /^0x[a-fA-F0-9]{40}$/.test(parsed.address)) {
+          burnOp.address = parsed.address.toLowerCase()
+        }
+        ops.push(burnOp)
       }
 
       if (op === 'link') {

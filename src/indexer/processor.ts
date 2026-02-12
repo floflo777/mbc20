@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import { MoltbookPost } from './types'
-import { parseMbc20All, validateTick, parseAmount, DeployOp, MintOp, TransferOp, LinkOp, Mbc20Op } from '@/lib/mbc20'
+import { parseMbc20All, validateTick, parseAmount, DeployOp, MintOp, TransferOp, BurnOp, LinkOp, Mbc20Op } from '@/lib/mbc20'
+
+// Tokens that are minted out - skip processing new mints
+const MINTED_OUT_TICKS = ['CLAW']
 
 export class OperationProcessor {
   constructor(private prisma: PrismaClient) {}
@@ -28,7 +31,7 @@ export class OperationProcessor {
     const opGroups = new Map<string, Mbc20Op[]>()
     for (const op of ops) {
       if (op.op === 'link') continue
-      const tickedOp = op as DeployOp | MintOp | TransferOp
+      const tickedOp = op as DeployOp | MintOp | TransferOp | BurnOp
       const key = `${tickedOp.tick.toUpperCase()}:${tickedOp.op}`
       if (!opGroups.has(key)) opGroups.set(key, [])
       opGroups.get(key)!.push(op)
@@ -61,6 +64,9 @@ export class OperationProcessor {
               break
             case 'transfer':
               processed = await this.processTransfer(post, op, i)
+              break
+            case 'burn':
+              processed = await this.processBurn(post, op, i)
               break
           }
           if (processed) anyProcessed = true
@@ -121,6 +127,10 @@ export class OperationProcessor {
 
   private async processMint(post: MoltbookPost, op: MintOp, opIndex: number = 0): Promise<boolean> {
     const tick = op.tick.toUpperCase()
+    
+    // Skip minted out tokens
+    if (MINTED_OUT_TICKS.includes(tick)) return false
+    
     const amount = parseAmount(op.amt)
     if (!amount) return false
 
@@ -131,17 +141,20 @@ export class OperationProcessor {
     if (!token) return false // Token doesn't exist
 
     // Rate limit: 1 mint per 30 min per agent per tick
+    // Only check mints BEFORE this post's time (fixes negative-elapsed bug when processing newest-first)
     const lastMint = await this.prisma.operation.findFirst({
       where: { 
         tick, 
         op: 'mint', 
-        agent: post.authorName 
+        agent: post.authorName,
+        createdAt: { lt: new Date(post.createdAt) },
       },
       orderBy: { createdAt: 'desc' },
     })
 
     if (lastMint) {
-      const elapsed = Date.now() - lastMint.createdAt.getTime()
+      const postTime = new Date(post.createdAt).getTime()
+      const elapsed = postTime - lastMint.createdAt.getTime()
       const MIN_INTERVAL = 29 * 60 * 1000 // 29 minutes (margin for cron jobs)
       if (elapsed < MIN_INTERVAL) {
         console.log(`Rate limited: ${post.authorName} tried to mint ${tick} (${Math.round(elapsed/1000)}s since last)`)
@@ -269,14 +282,85 @@ export class OperationProcessor {
     return true
   }
 
+  private async processBurn(post: MoltbookPost, op: BurnOp, opIndex: number = 0): Promise<boolean> {
+    const tick = op.tick.toUpperCase()
+    const amount = parseAmount(op.amt)
+    if (!amount) return false
+
+    // Get token
+    const token = await this.prisma.token.findUnique({
+      where: { tick },
+    })
+    if (!token) return false
+
+    // Get sender balance
+    const senderBalance = await this.prisma.balance.findUnique({
+      where: {
+        agent_tick: {
+          agent: post.authorName,
+          tick,
+        },
+      },
+    })
+    if (!senderBalance || senderBalance.amount < amount) return false
+
+    // Create operation and decrement balance in transaction
+    await this.prisma.$transaction([
+      this.prisma.operation.create({
+        data: {
+          op: 'burn',
+          tick,
+          agent: post.authorName,
+          amount,
+          address: op.address || null,
+          postId: post.id,
+          postUrl: post.url,
+          opIndex,
+          createdAt: new Date(post.createdAt),
+        },
+      }),
+      this.prisma.balance.update({
+        where: {
+          agent_tick: {
+            agent: post.authorName,
+            tick,
+          },
+        },
+        data: {
+          amount: { decrement: amount },
+        },
+      }),
+    ])
+
+    console.log(`Burned ${amount} ${tick} by ${post.authorName}`)
+    return true
+  }
+
   private async processLink(post: MoltbookPost, op: LinkOp): Promise<boolean> {
     const wallet = op.wallet.toLowerCase()
 
-    // Check if this agent already linked to this wallet
-    const existing = await this.prisma.walletLink.findUnique({
-      where: { agent_wallet: { agent: post.authorName, wallet } },
+    // Cooldown: prevent wallet rebinding within 24h
+    const lastLink = await this.prisma.walletLink.findFirst({
+      where: { agent: post.authorName },
+      orderBy: { createdAt: 'desc' },
     })
-    if (existing) return false
+
+    if (lastLink) {
+      const elapsed = new Date(post.createdAt).getTime() - lastLink.createdAt.getTime()
+      const COOLDOWN_MS = 24 * 60 * 60 * 1000 // 24 hours
+      if (elapsed < COOLDOWN_MS && elapsed > 0) {
+        console.log(`Link cooldown: ${post.authorName} tried to rebind wallet (${Math.round(elapsed/3600000)}h since last)`)
+        return false
+      }
+
+      // Skip if already linked to this exact wallet
+      if (lastLink.wallet === wallet) return false
+    }
+
+    // Remove any previous wallet links for this agent FIRST (replace, don't accumulate)
+    await this.prisma.walletLink.deleteMany({
+      where: { agent: post.authorName },
+    })
 
     await this.prisma.walletLink.create({
       data: {
