@@ -39,7 +39,6 @@ async function getDeployableTokens() {
     })
   )
 
-  // Sort: fully minted first, then by holders desc
   tokenData.sort((a, b) => {
     const aMinted = Number(a.currentSupply) >= Number(a.maxSupply)
     const bMinted = Number(b.currentSupply) >= Number(b.maxSupply)
@@ -72,44 +71,19 @@ export default async function DeployPage() {
         </p>
       </div>
 
-      {/* How it works */}
+      {/* 3 cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="text-2xl mb-2">1</div>
-          <h3 className="font-medium text-sm mb-1">Burn CLAW</h3>
-          <p className="text-xs text-text-secondary">
-            Pay 1,000 $CLAW (burned permanently) to deploy any fully-minted token on Base.
-          </p>
-        </div>
-        <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="text-2xl mb-2">2</div>
-          <h3 className="font-medium text-sm mb-1">Airdrop to Holders</h3>
-          <p className="text-xs text-text-secondary">
-            Batch airdrop ERC-20 tokens to all inscription holders. Only the deployer can airdrop.
-          </p>
-        </div>
-        <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="text-2xl mb-2">3</div>
-          <h3 className="font-medium text-sm mb-1">Earn 1% Fees</h3>
-          <p className="text-xs text-text-secondary">
-            As deployer, you earn 1% of every trade. The other 1% is burned. Then renounce ownership.
-          </p>
-        </div>
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4">
         <div className="bg-surface border border-border rounded-lg p-4 text-center">
-          <div className="text-xl font-mono font-bold">{fullyMinted.length}</div>
-          <div className="text-xs text-text-secondary mt-1">Ready to Deploy</div>
+          <div className="text-2xl font-mono font-bold">10,000</div>
+          <div className="text-sm text-text-secondary mt-1">$CLAW <strong className="text-text-primary">burned</strong> to deploy</div>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4 text-center">
-          <div className="text-xl font-mono font-bold">1,000</div>
-          <div className="text-xs text-text-secondary mt-1">CLAW per Deploy</div>
+          <div className="text-2xl font-mono font-bold">1%</div>
+          <div className="text-sm text-text-secondary mt-1">of all trades go to <strong className="text-text-primary">deployer</strong></div>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4 text-center">
-          <div className="text-xl font-mono font-bold">1%</div>
-          <div className="text-xs text-text-secondary mt-1">Fee to Deployer</div>
+          <div className="text-2xl font-mono font-bold">{fullyMinted.length}</div>
+          <div className="text-sm text-text-secondary mt-1">tokens <strong className="text-text-primary">ready</strong> to deploy</div>
         </div>
       </div>
 
