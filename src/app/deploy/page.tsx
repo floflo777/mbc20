@@ -103,6 +103,7 @@ export default async function DeployPage() {
             <div className="divide-y divide-border">
               {fullyMinted.map((token) => {
                 const isClaw = token.tick === 'CLAW'
+                const isMoltpunk = token.tick === 'MOLTPUNK'
 
                 return (
                   <div key={token.tick} className="grid grid-cols-12 gap-4 px-4 py-4 items-center">
@@ -127,6 +128,10 @@ export default async function DeployPage() {
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-success/10 text-success text-xs font-medium">
                           On-chain (V1)
                         </span>
+                      ) : isMoltpunk ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs font-medium">
+                          Team only
+                        </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-accent/10 text-accent text-xs font-medium">
                           Off-chain
@@ -138,6 +143,10 @@ export default async function DeployPage() {
                         <Link href="/trade" className="px-3 py-1.5 bg-success/10 text-success text-xs font-medium rounded-lg hover:bg-success/20 transition-colors">
                           Trade
                         </Link>
+                      ) : isMoltpunk ? (
+                        <span className="px-3 py-1.5 bg-purple-500/10 text-purple-400 text-xs font-medium rounded-lg">
+                          Moltpunk team
+                        </span>
                       ) : (
                         <button
                           disabled
