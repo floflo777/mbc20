@@ -36,6 +36,12 @@ next-env.d.ts
 # Prisma
 prisma/migrations/
 
+# Contracts (Hardhat)
+contracts/cache/
+contracts/artifacts/
+contracts/typechain-types/
+contracts/node_modules/
+
 # IDE
 .idea
 .vscode

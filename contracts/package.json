@@ -1,0 +1,19 @@
+{
+  "name": "mbc20-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "deploy:testnet": "npx hardhat run scripts/deploy.js --network baseSepolia",
+    "deploy:mainnet": "npx hardhat run scripts/deploy.js --network base"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "dotenv": "^16.0.0"
+  }
+}
